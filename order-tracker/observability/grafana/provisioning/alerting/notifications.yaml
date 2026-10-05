@@ -1,0 +1,21 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: incident-responder
+    receivers:
+      - uid: incident-responder-webhook
+        type: webhook
+        settings:
+          # The responder runs on the host (see incident-response/README.md).
+          url: http://host.docker.internal:8001/alerts
+          httpMethod: POST
+
+policies:
+  - orgId: 1
+    receiver: incident-responder
+    # One notification per failing endpoint.
+    group_by: [alertname, http_request_method, http_route]
+    group_wait: 5s
+    group_interval: 1m
+    repeat_interval: 1h
