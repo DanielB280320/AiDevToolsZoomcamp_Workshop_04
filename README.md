@@ -158,3 +158,7 @@ What was the problem?
 - The order timestamp could not be parsed because it had no time zone.
 - The app rejected the order's `preparing` status.
 - The lookup searched the wrong database column for express orders.
+
+  Answer:
+
+  `The express delivery date calculation tried to use a day that does not exist in that month.`

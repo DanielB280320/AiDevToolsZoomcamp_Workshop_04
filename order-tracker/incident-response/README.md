@@ -8,7 +8,7 @@ Receives Grafana alerts at `POST /alerts` on port 8001. For every firing alert i
 
 Repeated notifications for an alert that is still being investigated don't start a second agent. Resolved alerts are ignored.
 
-It runs on the host because it needs your logged-in `claude` CLI and `docker compose`.
+It runs on the host because it needs your logged-in `claude` CLI and `docker compose`. Grafana reaches it at `http://host.docker.internal:8001/alerts`. With Docker Desktop that works with the default `127.0.0.1` binding; with Docker Engine on Linux, set `RESPONDER_HOST=0.0.0.0` (or the Docker bridge IP).
 
 ```bash
 uv run python responder.py

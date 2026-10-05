@@ -73,3 +73,17 @@ def test_repeated_alert_while_investigating_starts_one_agent(client):
     assert response.json()["incidents"][0] == {
         "alert": "ResponderTest", "status": "already investigating", "incident": "existing",
     }
+
+
+def test_context_uses_longest_stacktrace():
+    alert = {"status": "firing", "labels": {"alertname": "X"}}
+    context = {
+        "route": None, "method": None, "errors": [], "metrics": [],
+        "start": responder.datetime.now(responder.timezone.utc),
+        "end": responder.datetime.now(responder.timezone.utc),
+        "logs": [{"time": "t", "line": "GET /x -> 500",
+                  "exception_stacktrace": "Traceback\n  frame\nValueError: day is out of range for month"}],
+        "traces": [{"trace_id": "abc", "name": "GET /x",
+                    "exceptions": [{"exception.stacktrace": "Traceback\n  fra"}]}],
+    }
+    assert "ValueError: day is out of range for month" in responder.render_context(alert, context)

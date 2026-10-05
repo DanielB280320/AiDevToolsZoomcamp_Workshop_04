@@ -262,10 +262,10 @@ def render_context(alert: dict, context: dict) -> str:
     if not context["traces"]:
         lines.append("- none found")
 
-    stacktrace = next(
-        (exc.get("exception.stacktrace") for trace in context["traces"] for exc in trace["exceptions"]),
-        None,
-    ) or next((entry.get("exception_stacktrace") for entry in context["logs"] if entry.get("exception_stacktrace")), None)
+    # Tempo truncates long span attributes, so use the longest copy (usually Loki's).
+    stacktraces = [entry.get("exception_stacktrace") for entry in context["logs"]]
+    stacktraces += [exc.get("exception.stacktrace") for trace in context["traces"] for exc in trace["exceptions"]]
+    stacktrace = max(filter(None, stacktraces), key=len, default=None)
     if stacktrace:
         lines += ["", "## Stack trace (first failing request)", "", "```", stacktrace.strip(), "```"]
 
@@ -311,6 +311,8 @@ def run_agent(incident_dir: Path):
         CLAUDE_BIN, "-p", prompt,
         "--output-format", "stream-json", "--verbose",
         "--permission-mode", "acceptEdits",
+        # No MCP servers: the unattended agent only needs local files and the allowed commands.
+        "--strict-mcp-config",
         "--allowedTools", AGENT_ALLOWED_TOOLS,
     ]
     write_status(incident_dir, state="agent running")
