@@ -1,3 +1,4 @@
+import logging
 import os
 import sqlite3
 from contextlib import asynccontextmanager
@@ -5,13 +6,27 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
+from opentelemetry import metrics, trace
+from opentelemetry.trace import SpanKind, Status, StatusCode
 from pydantic import BaseModel, Field
+
+from app.telemetry import SERVICE_NAME, setup_telemetry
 
 
 DB_PATH = Path(os.getenv("ORDER_DB_PATH", "data/orders.db"))
 STATUSES = {"received", "preparing", "shipped", "delivered"}
+
+setup_telemetry()
+tracer = trace.get_tracer(SERVICE_NAME)
+meter = metrics.get_meter(SERVICE_NAME)
+logger = logging.getLogger(SERVICE_NAME)
+request_counter = meter.create_counter(
+    "http.server.requests",
+    unit="{request}",
+    description="HTTP requests by route and status code",
+)
 
 
 def connect():
@@ -79,6 +94,35 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Order Tracker", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def telemetry_middleware(request: Request, call_next):
+    method = request.method
+    with tracer.start_as_current_span(f"{method} {request.url.path}", kind=SpanKind.SERVER) as span:
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except Exception as exc:
+            status_code = 500
+            span.record_exception(exc)
+            raise
+        finally:
+            route = request.scope.get("route")
+            route_path = route.path if route else "unmatched"
+            attributes = {
+                "http.request.method": method,
+                "http.route": route_path,
+                "http.response.status_code": status_code,
+            }
+            span.update_name(f"{method} {route_path}")
+            span.set_attributes(attributes)
+            if status_code >= 500:
+                span.set_status(Status(StatusCode.ERROR))
+            request_counter.add(1, attributes)
+            log = logger.error if status_code >= 500 else logger.info
+            log("%s %s -> %s", method, request.url.path, status_code, extra=attributes)
+    return response
+
+
 @app.get("/")
 def index():
     return FileResponse(Path(__file__).parent.parent / "static" / "index.html")
@@ -100,6 +144,7 @@ def list_orders():
 
 @app.get("/api/orders/{order_id}")
 def get_order(order_id: str):
+    trace.get_current_span().set_attribute("order.id", order_id)
     with connect() as db:
         row = db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
     if row is None:

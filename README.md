@@ -27,6 +27,11 @@ What does the health check return?
 - `{"orders":3}`
 - `pong`
 
+  Answer:
+
+  `{"status":"ok"}`
+  
+
 For this and the next questions, you can ask your coding assistant to help select the correct option.
 
 ## Question 2: Instrument one endpoint
@@ -52,6 +57,10 @@ Which HTTP status code does the metric record for this lookup?
 - 301
 - 404
 - 500
+
+  Answer:
+
+  `200`
 
 ## Question 3: Build the telemetry pipeline
 
