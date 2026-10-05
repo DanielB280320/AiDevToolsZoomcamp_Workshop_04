@@ -1,0 +1,58 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: order-tracker
+    folder: Order Tracker
+    interval: 10s
+    rules:
+      - uid: order-tracker-5xx
+        title: Order Tracker 5xx responses
+        condition: C
+        data:
+          # A: exact count of 5xx responses per endpoint over the last 5 minutes.
+          # increase() extrapolates (1 error can read as 2); max - min does not. Each app
+          # process has its own instance label, so a series never sees a counter reset.
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                sum by (http_request_method, http_route) (
+                  max_over_time(http_server_requests_total{http_response_status_code=~"5.."}[5m])
+                  - min_over_time(http_server_requests_total{http_response_status_code=~"5.."}[5m])
+                )
+          # C: fire for every endpoint with at least one 5xx response.
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+        # No 5xx series at all means no server errors, not a broken query.
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels:
+          service: order-tracker
+          severity: critical
+        annotations:
+          summary: "5xx responses on {{ $labels.http_request_method }} {{ $labels.http_route }}"
+          description: >-
+            {{ $labels.http_request_method }} {{ $labels.http_route }} returned
+            {{ printf "%.0f" $values.A.Value }} 5xx response(s) in the last 5 minutes.
+          endpoint: "{{ $labels.http_request_method }} {{ $labels.http_route }}"
+          time_window: 5m
+          # Default GRAFANA_PORT. Notifications also carry dashboardURL/panelURL, which Grafana
+          # builds from __dashboardUid__/__panelId__ and GF_SERVER_ROOT_URL.
+          dashboard_url: "http://localhost:3001/d/order-tracker/order-tracker?viewPanel=6"
+          __dashboardUid__: order-tracker
+          __panelId__: "6"

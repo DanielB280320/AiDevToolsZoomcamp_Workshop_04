@@ -104,6 +104,10 @@ Wait for the alert to evaluate. What state does Grafana show?
 - Pending
 - No data
 
+  Answer:
+
+  `Normal`
+
 ## Question 5: Build the automatic responder
 
 When an alert fires, the on-call engineer needs to look into it and solve it. If they cannot do it, they escalate it to developers.
