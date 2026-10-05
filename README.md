@@ -130,6 +130,12 @@ Wait for the agent to finish, then read its response.
 
 What did the agent respond? Include the last line from its answer.
 
+  Answer:
+
+  > I received the `ResponderTest` alert. It has the label `test="true"`, names no affected endpoint, and its summary says "Test notification; no incident to fix". The context window shows only `GET /healthz -> 200` (166 requests), with no error logs or failing traces, so I didn't change any files.
+  >
+  > `TEST: Received the ResponderTest test notification (test="true", no affected endpoint), so no action was needed.`
+
 ## Question 6: Watch the agent fix the incident
 
 Now test the complete flow with a real Grafana alert.

@@ -115,12 +115,14 @@ app = FastAPI(title="Order Tracker", lifespan=lifespan)
 @app.middleware("http")
 async def telemetry_middleware(request: Request, call_next):
     method = request.method
+    error = None
     with tracer.start_as_current_span(f"{method} {request.url.path}", kind=SpanKind.SERVER) as span:
         try:
             response = await call_next(request)
             status_code = response.status_code
         except Exception as exc:
             status_code = 500
+            error = exc
             span.record_exception(exc)
             raise
         finally:
@@ -137,7 +139,7 @@ async def telemetry_middleware(request: Request, call_next):
                 span.set_status(Status(StatusCode.ERROR))
             request_counter.add(1, attributes)
             log = logger.error if status_code >= 500 else logger.info
-            log("%s %s -> %s", method, request.url.path, status_code, extra=attributes)
+            log("%s %s -> %s", method, request.url.path, status_code, extra=attributes, exc_info=error)
     return response
 
 

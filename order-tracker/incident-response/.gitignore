@@ -1,0 +1,4 @@
+incidents/
+.venv/
+__pycache__/
+responder.log
