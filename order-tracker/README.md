@@ -22,6 +22,19 @@ ORDER_TRACKER_PORT=18080 docker compose up --build -d --wait
 
 Run tests with `uv run --frozen pytest -q`. Stop the app with `docker compose down`. Add `-v` only if you also want to delete the order data.
 
+## Observability
+
+The app sends metrics, logs, and traces over OTLP to an OpenTelemetry Collector, which forwards them to Prometheus, Loki, and Tempo. Configuration lives in `observability/`.
+
+| Service | URL | Port override |
+| --- | --- | --- |
+| Grafana (dashboard "Order Tracker") | <http://127.0.0.1:3001> | `GRAFANA_PORT` |
+| Prometheus | <http://127.0.0.1:9091> | `PROMETHEUS_PORT` |
+| Loki | <http://127.0.0.1:3101> | `LOKI_PORT` |
+| Tempo | <http://127.0.0.1:3201> | `TEMPO_PORT` |
+
+Without `OTEL_EXPORTER_OTLP_ENDPOINT`, the app prints telemetry to stdout instead.
+
 ## API
 
 | Method | Path | Purpose |

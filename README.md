@@ -81,6 +81,10 @@ In Grafana, find the request metric for this lookup. Check that its log and trac
 - 301
 - 500
 
+  Answer:
+
+  `404`
+
 ## Question 4: Configure the alert
 
 The dashboard shows errors when you open it, but it does not notify anyone on its own. An alert watches the `5xx` metric and changes state when server errors occur. Later, Grafana will send an HTTP request called a webhook to the responder so it can start investigating automatically.
