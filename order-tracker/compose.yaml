@@ -1,0 +1,27 @@
+name: order-tracker
+
+services:
+  app:
+    image: order-tracker:${ORDER_TRACKER_TAG:-local}
+    build: .
+    ports:
+      - "127.0.0.1:${ORDER_TRACKER_PORT:-8000}:8000"
+    environment:
+      ORDER_DB_PATH: /data/orders.db
+    volumes:
+      - orders:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  orders:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${ORDER_TRACKER_SUBNET:-10.215.24.0/24}
